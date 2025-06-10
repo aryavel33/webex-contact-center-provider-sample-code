@@ -1,48 +1,72 @@
-**Note:** *These APIs are not open for public consumption, offer has to be procurred for your org in order to use these services. For any new request to use these APIs please reach out to Cisco on [ccai-connectors@cisco.com](mailto:ccai-connectors@cisco.com) with business use case.*
+**Note: These APIs are behind a paywall. Customers are encouraged to work with their CSM to gain access to the APIs by enabling a "3rd Party AI" SKU trial for testing BYoVA in their organization. Tech partners and ISVs are encouraged to obtain a [sandbox](https://developer.webex.com/webex-contact-center/docs/sandbox_cc) and reach out to [developer support](https://developer.webex.com/explore/support) to enable the SKU for 90 days. [Learn more](https://developer.webex.com/webex-contact-center/docs/bring-your-own-virtual-agent).**
 
 # Architecture
 
 ![Architecture](https://user-images.githubusercontent.com/5176062/115956139-c2be9480-a518-11eb-9aa6-6906b070b00b.png)
 
-1.	A Contact Center Client will use AI for below persona.
-    Virtual Agent (VA): This is the persona in which Caller will deal with IVR / Virtual Assistant, which will be capable of Voice / DTMF inputs which will be processed by an NLP engine and provides the response in the form of synthesized audio.
-2.	The VA request goes through API Gateway for billing / throttling.
-3.	CCAI Orchestrator Platform will based on the request fetch the Config which will have the service app details.(service app includes jws and url of the external connector)
-4.	Orchestrator to establish the connection with the jws provided by the service app data source registration.
-5.	Orchestrator sends the request to External AI Connector over standard gRPC protobuf spec defined by Orchestrator.
-6.	External AI Connector receives the media and translate it into the desired External AI Service format and route it to the request.
-7.	The responses received from External AI Services are returned back to Orchestrator by the External AI Connector.
+AI Usage in Contact Center:
+A Contact Center client supports the following use cases:
+
+ 1. **Virtual Agent (VA)**: This API allows the caller to interact with an IVR or Virtual Assistant, which can process both voice and DTMF inputs. These inputs are analyzed by an NLP engine, and responses are provided in the form of synthesized audio.
+ 2.  **Media Forking**: This API allows the ISV and Tech Partners to access the real-time fork of the caller audio for upstream processing. Audio stream can be used to provide transcripts, generate summaries, calculate sentiment score, analyze performance metrics, and more.
+    
+* **API Gateway Processing**:
+The VA request passes through the API Gateway for billing and throttling purposes.
+
+* **Configuration Fetching:**
+Based on the request, the CCAI Orchestrator Platform retrieves the configuration, which contains the service app details (including the JWS and the URL of the external connector).
+
+* **Connection Establishment:**
+The Orchestrator establishes a connection with the JWS provided by the service app's data source registration.
+
+* **Request Handling via gRPC:**
+The Orchestrator sends the request to the External AI Connector using the standard gRPC protobuf specification defined by the Orchestrator.
+
+* **Media Translation:**
+The External AI Connector receives the media, translates it into the desired format required by the External AI Service, and routes it accordingly.
+
+* **Response Handling:**
+The External AI Connector sends the responses received from the External AI Services back to the Orchestrator.
 
 ## Virtual Agent Callflow
 ![VA](https://user-images.githubusercontent.com/5176062/116988874-a37cef80-acee-11eb-9123-bd7fa37373f0.jpg)
 
 # Onboarding
-Webex Contact Center Control Hub to be used by the customer to create a configuration.
 
 For providers-
-1.	A service app needs to be created(for Voice /Digital virtual agent schema) and should be authorized by customer admin for the usage.
-2.	A configuration will need to be created which is represented by a configId(which will be associated with service app) and will define the Services / Features to be used. 
-3.	Orchestrator will orchestrate the call to a specific provider and add the necessary feature flags based on the config details.
+A service app needs to be created (for Voice/Digital Virtual Agent schema) and must be authorized by the customer admin for usage.
+A configuration must be created, represented by a configId (which will be associated with the service app), and it will define the services/features to be used.
+The Orchestrator will manage the call to a specific provider and apply the necessary feature flags based on the configuration details.
 
-Note: Detailed documentation for on-boarding can be found on webex developer portal
-https://developer.webex-cx.com/documentation/guides/bring-your-own-virtual-agent
+Note: Detailed documentation for onboarding can be found on the Webex developer portal: https://developer.webex.com/webex-contact-center/docs/bring-your-own-virtual-agent
 
-API
-For detailed description of the API, please refer the protobuf files.
-•	VoiceVirtualAgent: API to be called for Virtual Agent request/Response.
-Request: The requests will be passed with the generic params defined in the protobuf and Provider specific params will be set in the Map contained in the request in the form of Key / Value.
-Response: The response will need to populate the generic params defined in the protobuf in the specific params and Provider specific objects will be passed back to client in the form of object json.
-Features: The request will also carry the desired features needed on the incoming request. The response object should return the responses accordingly.
-•	Real Time audio forking: API to be called for Real time audio forking use case.
-Request: The requests will be passed with the generic params defined in the protobuf.
-Response: The response includes status of the forked audio and error messages(if applicable). Right now status field is not used by the client and is only logged.
-Features: The request will also carry the desired features needed on the incoming request. The response object should return the responses accordingly.
-# Authentication
-Orchestrator will use a jws while establishing gRPC connection. This jws is a kwt generated by Cisco's developer platform for the org and signed by cisco's private key.
-This is generated at the data source registration phase. This jws is valid upto 24 hours and is configurable.
-Providers need to fetch cisco's public key and match it with the key id present in the header of jws. if its matches then the request is from Cisco.
+APIs
+**VoiceVirtualAgent:** API to be called for Virtual Agent request/response.
+
+* **Request:** The requests will include the generic parameters defined in the protobuf, while provider-specific parameters will be set in the map contained in the request, in the form of key-value pairs.
+* **Response:** The response must populate the generic parameters defined in the protobuf. Provider-specific objects will be returned to the client in the form of JSON objects.
+* **Features:** The request will also include the desired features required for the incoming request. The response object should return the responses accordingly.
+* **Proto Definition:** [voicevirtualagent.proto](https://github.com/CiscoDevNet/webex-contact-center-provider-sample-code/blob/main/media-service-api/dialog-connector-simulator/src/main/proto/com/cisco/wcc/ccai/media/v1/voicevirtualagent.proto)
+
+**Conversation Audio Forking:** API to be called for real-time audio forking use cases.
+
+* **Request:** The requests will include the generic parameters defined in the protobuf.
+* **Response:** The response includes the status of the forked audio and any applicable error messages. Currently, the status field is not used by the client and is only logged.
+* **Features:** The request will also include the desired features required for the incoming request. The response object should return the responses accordingly.
+* **Proto Definition:** [conversationaudioforking.proto](https://github.com/CiscoDevNet/webex-contact-center-provider-sample-code/blob/main/media-service-api/dialog-connector-simulator/src/main/proto/com/cisco/wcc/ccai/media/v1/conversationaudioforking.proto)
+
+# Authentication: Bring your own Data Source
+
+<img width="1242" alt="Screenshot 2025-06-10 at 2 11 15 PM" src="https://github.com/user-attachments/assets/f1c662a8-ca8f-4d31-9656-87573e7a70f4" />
+
+The Webex CCAI Orchestrator will use a JWS while establishing a gRPC connection. This JWS is a JWT generated by Cisco's developer platform for the organization and signed using Cisco's private key.
+It is generated during the data source registration phase. This JWS is valid for up to 24 hours and is configurable.
+Providers need to fetch Cisco's public key and compare it with the key ID present in the header of the JWS token. If it matches, the request is verified as being from Cisco.
+
+
 # Serviceability
-Each Provider endpoint to expose certain APIs to monitor the health of endpoint.
+Each Provider endpoint should be able to send responses to ping tests initiated from the Webex CCAI platform. Refer: [health.proto](https://github.com/CiscoDevNet/webex-contact-center-provider-sample-code/blob/main/media-service-api/dialog-connector-simulator/src/main/proto/com/cisco/wcc/ccai/v1/health.proto)
+
 https://<Service endpoint>/<service Name>/v1/ping
 Response:
 ```sh
@@ -55,7 +79,7 @@ Response:
 }
 ```
 # Glossary
-* Service app: Service app created by selecting respective schema on dev portal.
-* Data source: Using authorized service app's token data source is registered with Cisco which includes the url at which communication should happen.At the same step jws is alos generated.
+* Service app: Service app created by selecting the respective schema on the developer portal.
+* Data source: A URL provided by the AI provider that is used by the Webex CCAI orchestration platform to connect to and is authenticated using a JWS token.
 * Provider: AI service provider.
 * AI Service: Service / Feature offered by a Provider.
